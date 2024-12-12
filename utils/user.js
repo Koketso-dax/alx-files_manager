@@ -1,33 +1,38 @@
 import redisClient from './redis';
 import dbClient from './db';
-import basicUtils from './basic';
 
 /**
- * Module for user utilities
+ * Module with user utilities
  */
-
 const userUtils = {
   /**
-     * getUserIdAndKey Gets a user id and key of redis from request
-     * @param {object} request req object
-     * @return {object} userid and redis key
-     */
+   * Gets a user id and key of redis from request
+   * @request {request_object} express request obj
+   * @return {object} object containing userId and
+   * redis key for token
+   */
   async getUserIdAndKey(request) {
-    const token = request.header('X-Token');
-    const key = `auth_${token}`;
-    const userId = await redisClient.get(key);
-    return { userId, key };
+    const obj = { userId: null, key: null };
+
+    const xToken = request.header('X-Token');
+
+    if (!xToken) return obj;
+
+    obj.key = `auth_${xToken}`;
+
+    obj.userId = await redisClient.get(obj.key);
+
+    return obj;
   },
 
   /**
-     * getUser Gets a user from the database
-     * @param {object} request req object
-     * @return {object} user object
-     */
-  async getUser(request) {
-    const { userId } = await this.getUserIdAndKey(request);
-    if (!basicUtils.isValidId(userId)) return null;
-    const user = await dbClient.users.findOne({ _id: basicUtils.ObjectId(userId) });
+   * Gets a user from database
+   * @query {object} query expression for finding
+   * user
+   * @return {object} user document object
+   */
+  async getUser(query) {
+    const user = await dbClient.usersCollection.findOne(query);
     return user;
   },
 };

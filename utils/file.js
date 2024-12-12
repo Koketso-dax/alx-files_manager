@@ -11,7 +11,7 @@ import basicUtils from './basic';
 const fileUtils = {
   /**
    * Validates if body is valid for creating file
-   * @param {object} request request obj
+   * @request {request_object} express request obj
    * @return {object} object with err and validated params
    */
   async validateBody(request) {
@@ -20,6 +20,7 @@ const fileUtils = {
     } = request.body;
 
     let { parentId = 0 } = request.body;
+
     const typesAllowed = ['file', 'image', 'folder'];
     let msg = null;
 
@@ -65,8 +66,8 @@ const fileUtils = {
 
   /**
    * gets file document from db
-   * @param {object} query used to find file
-   * @return {object} db file
+   * @query {obj} query used to find file
+   * @return {object} file
    */
   async getFile(query) {
     const file = await dbClient.filesCollection.findOne(query);
@@ -76,7 +77,7 @@ const fileUtils = {
   /**
    * gets list of file documents from db belonging
    * to a parent id
-   * @param {object} query name of file to search
+   * @query {obj} query used to find file
    * @return {Array} list of files
    */
   async getFilesOfParentId(query) {
@@ -86,10 +87,10 @@ const fileUtils = {
 
   /**
    * saves files to database and disk
-   * @param {string} userId query used to find file
-   * @param {object} fileParams object with attributes of file to save
-   * @param {string} FOLDER_PATH path to save file in disk
-   * @return {object} object with error if present and file
+   * @userId {string} query used to find file
+   * @fileParams {obj} object with attributes of file to save
+   * @FOLDER_PATH {string} path to save file in disk
+   * @return {obj} object with error if present and file
    */
   async saveFile(userId, fileParams, FOLDER_PATH) {
     const {
@@ -109,7 +110,10 @@ const fileUtils = {
 
     if (fileParams.type !== 'folder') {
       const fileNameUUID = uuidv4();
+
+      // const fileDataDecoded = Buffer.from(data, 'base64').toString('utf-8');
       const fileDataDecoded = Buffer.from(data, 'base64');
+
       const path = `${FOLDER_PATH}/${fileNameUUID}`;
 
       query.localPath = path;
@@ -123,7 +127,12 @@ const fileUtils = {
     }
 
     const result = await dbClient.filesCollection.insertOne(query);
+
+    // query.userId = query.userId.toString();
+    // query.parentId = query.parentId.toString();
+
     const file = this.processFile(query);
+
     const newFile = { id: result.insertedId, ...file };
 
     return { error: null, newFile };
@@ -131,8 +140,8 @@ const fileUtils = {
 
   /**
    * Updates a file document in database
-   * @param {object} query query to find document to update
-   * @param {object} set object with query info to update in Mongo
+   * @query {obj} query to find document to update
+   * @set {obj} object with query info to update in Mongo
    * @return {object} updated file
    */
   async updateFile(query, set) {
@@ -146,8 +155,8 @@ const fileUtils = {
 
   /**
    * Makes a file public or private
-   * @param {object} request express request obj
-   * @param {boolean} setPublish true or false
+   * @request {request_object} express request obj
+   * @setPublish {boolean} true or false
    * @return {object} error, status code and updated file
    */
   async publishUnpublish(request, setPublish) {
@@ -203,11 +212,12 @@ const fileUtils = {
 
   /**
    * Transform _id into id in a file document
-   * @param {object} doc document to be processed
+   * @doc {object} document to be processed
    * @return {object} processed document
    */
   processFile(doc) {
     // Changes _id for id and removes localPath
+
     const file = { id: doc._id, ...doc };
 
     delete file.localPath;
@@ -219,8 +229,8 @@ const fileUtils = {
   /**
    * Checks if a file is public and belongs to a
    * specific user
-   * @param {object} file file to evaluate
-   * @param {string} userId id of user to check ownership
+   * @file {object} file to evaluate
+   * @userId {string} id of user to check ownership
    * @return {boolean} true or false
    */
   isOwnerAndPublic(file, userId) {
@@ -234,8 +244,8 @@ const fileUtils = {
 
   /**
    * Gets a files data from database
-   * @param {object} file file to obtain data of
-   * @param {string} size size in case of file being image
+   * @file {object} file to obtain data of
+   * @size {string} size in case of file being image
    * @return {object} data of file or error and status code
    */
   async getFileData(file, size) {
@@ -247,6 +257,7 @@ const fileUtils = {
     try {
       data = await fsPromises.readFile(localPath);
     } catch (err) {
+      // console.log(err.message);
       return { error: 'Not found', code: 404 };
     }
 

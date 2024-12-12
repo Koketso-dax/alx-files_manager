@@ -1,5 +1,4 @@
 import { MongoClient } from 'mongodb';
-import { promisify } from 'util';
 
 const DB_HOST = process.env.DB_HOST || 'localhost';
 const DB_PORT = process.env.DB_PORT || 27017;
@@ -7,46 +6,47 @@ const DB_DATABASE = process.env.DB_DATABASE || 'files_manager';
 const url = `mongodb://${DB_HOST}:${DB_PORT}`;
 
 /**
- * DBClient - js mongodb client class
+ * Class for performing operations with Mongo service
  */
 class DBClient {
   constructor() {
-    this.client = new MongoClient(url, { useUnifiedTopology: true });
-    this.client.connect((err) => {
-      if (err) {
-        console.log(`MongoDB connection error: ${err}`);
+    MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
+      if (!err) {
+        // console.log('Connected successfully to server');
+        this.db = client.db(DB_DATABASE);
+        this.usersCollection = this.db.collection('users');
+        this.filesCollection = this.db.collection('files');
       } else {
-        console.log('Connected to MongoDB');
+        console.log(err.message);
+        this.db = false;
       }
     });
   }
 
   /**
-   * isAlive - check if mongodb client is connected
-   * @returns {boolean} true if connected, false otherwise
+   * Checks if connection to Redis is Alive
+   * @return {boolean} true if connection alive or false if not
    */
   isAlive() {
-    return this.client.isConnected();
+    return Boolean(this.db);
   }
 
   /**
-   * nbUsers - count number of documents in users collection
-   * @returns {number} number of documents in users collection
+   * Returns the number of documents in the collection users
+   * @return {number} amount of users
    */
   async nbUsers() {
-    const users = this.client.db(DB_DATABASE).collection('users');
-    const countAsync = promisify(users.countDocuments).bind(users);
-    return countAsync({});
+    const numberOfUsers = this.usersCollection.countDocuments();
+    return numberOfUsers;
   }
 
   /**
-   * nbFiles - count number of documents in files collection
-   * @returns {number} number of documents in files collection
+   * Returns the number of documents in the collection files
+   * @return {number} amount of files
    */
   async nbFiles() {
-    const files = this.client.db(DB_DATABASE).collection('files');
-    const countAsync = promisify(files.countDocuments).bind(files);
-    return countAsync({});
+    const numberOfFiles = this.filesCollection.countDocuments();
+    return numberOfFiles;
   }
 }
 
